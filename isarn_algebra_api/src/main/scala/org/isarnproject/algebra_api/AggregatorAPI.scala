@@ -19,11 +19,11 @@ package org.isarnproject.algebra_api
 /**
  * Defines aggregation (aka map-reduce) on a monoidal aggregating type `M` and data type `D`
  */
-trait Aggregator[M, D] extends Any with Serializable {
+trait AggregatorAPI[M, D] extends Any with Serializable {
   /**
    * Return the object defining the monoidal properties on type `M`
    */
-  def monoid: Monoid[M]
+  def monoid: MonoidAPI[M]
 
   /**
    * Return the left-folding function for this aggregator.

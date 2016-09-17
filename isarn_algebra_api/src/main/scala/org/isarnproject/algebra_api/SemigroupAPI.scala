@@ -20,7 +20,7 @@ package org.isarnproject.algebra_api
  * A semigroup is any type `A` with an associative operation (`combine`).
  * This object defines the `combine` option for some type `A`
  */
-trait Semigroup[A] extends Any with Serializable {
+trait SemigroupAPI[A] extends Any with Serializable {
 
   /**
    * Associative operation taking which combines two values.

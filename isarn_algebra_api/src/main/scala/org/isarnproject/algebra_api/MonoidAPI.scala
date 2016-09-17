@@ -17,7 +17,7 @@ limitations under the License.
 package org.isarnproject.algebra_api
 
 
-trait Monoid[A] extends Any with Semigroup[A] {
+trait MonoidAPI[A] extends Any with SemigroupAPI[A] {
   /**
    * Return the identity element for this monoid.
    */
