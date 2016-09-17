@@ -19,8 +19,15 @@ lazy val isarn_scalatest = project.in(file("isarn_scalatest"))
     name := "isarn-scalatest"
     )
 
+lazy val isarn_algebra_api = project.in(file("isarn_algebra_api"))
+  .settings(commonSettings:_*)
+  .settings(
+    name := "isarn-algebra-api"
+    )
+
 lazy val isarn_collections = project.in(file("isarn_collections"))
   .dependsOn(isarn_scalatest % "test->test")
+  .dependsOn(isarn_algebra_api)
   .settings(commonSettings:_*)
   .settings(
     name := "isarn-collections",
