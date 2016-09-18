@@ -20,7 +20,7 @@ import math.Ordering
 
 import scala.collection.SortedMap
 
-import com.twitter.algebird.Monoid
+import org.isarnproject.algebraAPI.{ MonoidAPI => Monoid }
 
 import org.isarnproject.collections.mixmaps.redblack.tree._
 import org.isarnproject.collections.mixmaps.ordered._
@@ -45,7 +45,7 @@ package tree {
     final def inc(di: DataMap[K, V]) = {
       val d = new DataMap[K, V] {
         val key = di.key
-        val value = valueMonoid.plus(valueMonoid.zero, di.value)
+        val value = valueMonoid.combine(valueMonoid.empty, di.value)
       }
       rNode(d, this, this)
     }
@@ -63,7 +63,7 @@ package tree {
         else {
           val d = new DataMap[K, V] {
             val key = data.key
-            val value = valueMonoid.plus(data.value, di.value)
+            val value = valueMonoid.combine(data.value, di.value)
           }
           rNode(d, lsub, rsub)
         }
@@ -73,7 +73,7 @@ package tree {
         else {
           val d = new DataMap[K, V] {
             val key = data.key
-            val value = valueMonoid.plus(data.value, di.value)
+            val value = valueMonoid.combine(data.value, di.value)
           }
           bNode(d, lsub, rsub)
         }
@@ -112,7 +112,7 @@ trait IncrementMapLike[K, V, IN <: INodeInc[K, V], M <: IncrementMapLike[K, V, I
 
   /**
    * Add (w.r.t. valueMonoid) a given value to the value currently stored at key.
-   * @note If key is not present, equivalent to insert(k, valueMonoid.plus(valueMonoid.zero, iv)
+   * @note If key is not present, equivalent to insert(k, valueMonoid.combine(valueMonoid.empty, iv)
    */
   def increment(k: K, iv: V): M = this.incr(
     new DataMap[K, V] {

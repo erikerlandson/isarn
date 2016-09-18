@@ -38,11 +38,8 @@ lazy val isarn_algebird_algebra_api = project.in(file("isarn_algebird_algebra_ap
 lazy val isarn_collections = project.in(file("isarn_collections"))
   .dependsOn(isarn_scalatest % "test->test")
   .dependsOn(isarn_algebra_api)
-  .dependsOn(isarn_algebird_algebra_api % "compile->test")
+  .dependsOn(isarn_algebird_algebra_api % "test->compile")
   .settings(commonSettings:_*)
   .settings(
-    name := "isarn-collections",
-    libraryDependencies ++= Seq(
-      "com.twitter" %% "algebird-core" % "0.12.1"
-      )
+    name := "isarn-collections"
     )

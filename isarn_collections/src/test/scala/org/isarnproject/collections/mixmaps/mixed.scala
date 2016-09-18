@@ -19,8 +19,10 @@ package org.isarnproject.collections.mixmaps
 import org.scalatest._
 
 import com.twitter.algebird.{ Monoid, Aggregator, MonoidAggregator }
+import org.isarnproject.algebraAPI.{ MonoidAPI, AggregatorAPI }
 
 import org.isarnproject.scalatest.matchers.seq._
+import org.isarnproject.algebirdAlgebraAPI.implicits._
 
 object mixed {
   import math.Numeric
@@ -55,8 +57,8 @@ object mixed {
 
     class Inject[K, V, P](
       val keyOrdering: Numeric[K],
-      val valueMonoid: Monoid[V],
-      val prefixAggregator: MonoidAggregator[V, P, P]) extends Serializable {
+      val valueMonoid: MonoidAPI[V],
+      val prefixAggregator: AggregatorAPI[P, V]) extends Serializable {
 
       def iNode(clr: Color, dat: Data[K], ls: Node[K], rs: Node[K]) =
         new Inject[K, V, P](keyOrdering, valueMonoid, prefixAggregator) with INodeMix[K, V, P] with MixedMap[K, V, P] {
@@ -67,7 +69,8 @@ object mixed {
           val rsub = rs.asInstanceOf[NodeMix[K, V, P]]
           val data = dat.asInstanceOf[DataMap[K, V]]
           // INodePS[K, V, P]
-          val prefix = prefixAggregator.append(prefixAggregator.reduce(lsub.pfs, rsub.pfs), data.value)
+          val prefix = prefixAggregator.lff(
+            prefixAggregator.monoid.combine(lsub.pfs, rsub.pfs), data.value)
           // INodeNear[K, V]
           val kmin = lsub match {
             case n: INodeMix[K, V, P] => n.kmin
@@ -103,11 +106,11 @@ object mixed {
 
     object infra {
       case class GetValue[K](num: Numeric[K]) {
-        def value[V](implicit vm: Monoid[V]) = GetPrefix(num, vm)
+        def value[V](implicit vm: MonoidAPI[V]) = GetPrefix(num, vm)
       }
 
-      case class GetPrefix[K, V](num: Numeric[K], vm: Monoid[V]) {
-        def prefix[P](implicit agg: MonoidAggregator[V, P, P]): MixedMap[K, V, P] =
+      case class GetPrefix[K, V](num: Numeric[K], vm: MonoidAPI[V]) {
+        def prefix[P](implicit agg: AggregatorAPI[P, V]): MixedMap[K, V, P] =
           new Inject[K, V, P](num, vm, agg) with LNodeMix[K, V, P] with MixedMap[K, V, P]
       }
     }

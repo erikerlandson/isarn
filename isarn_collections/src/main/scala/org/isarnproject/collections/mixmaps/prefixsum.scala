@@ -20,7 +20,7 @@ import math.Ordering
 
 import scala.collection.SortedMap
 
-import com.twitter.algebird.{ Monoid, MonoidAggregator }
+import org.isarnproject.algebraAPI.{ AggregatorAPI => Aggregator }
 
 import org.isarnproject.collections.mixmaps.redblack.tree._
 import org.isarnproject.collections.mixmaps.ordered._
@@ -32,14 +32,15 @@ package tree {
   /** Base trait for R/B nodes supporting prefix-sum query */
   trait NodePS[K, V, P] extends NodeMap[K, V] {
     /** Aggregator that defines semantics of prefix sum */
-    def prefixAggregator: MonoidAggregator[V, P, P]
+    def prefixAggregator: Aggregator[P, V]
 
     /**
      * Obtain the prefix (cumulative) sum of values <= a given key 'k'.
      * If 'open' is true, sums the open interval for keys strictly < k.
      * If 'k' is not present in the map, then the sum for keys < k is returned.
      */
-    final def prefixSum(k: K, open: Boolean = false): P = pfSum(k, prefixAggregator.monoid.zero, open)
+    final def prefixSum(k: K, open: Boolean = false): P =
+      pfSum(k, prefixAggregator.monoid.empty, open)
 
     private[tree] def pfSum(k: K, sum: P, open: Boolean): P
 
@@ -50,7 +51,7 @@ package tree {
   /** Leaf node for R/B nodes supporting prefix-sum query */
   trait LNodePS[K, V, P] extends NodePS[K, V, P] with LNodeMap[K, V] {
     final def pfSum(k: K, sum: P, open: Boolean) = sum
-    final def pfs = prefixAggregator.monoid.zero
+    final def pfs = prefixAggregator.monoid.empty
   }
 
   /** Internal node for R/B nodes supporting prefix-sum query */
@@ -64,11 +65,12 @@ package tree {
       if (keyOrdering.lt(k, data.key))
         lsub.pfSum(k, sum, open)
       else if (keyOrdering.gt(k, data.key))
-        rsub.pfSum(k, prefixAggregator.append(prefixAggregator.reduce(sum, lsub.pfs), data.value), open)
+        rsub.pfSum(k, prefixAggregator.lff(
+          prefixAggregator.monoid.combine(sum, lsub.pfs), data.value), open)
       else if (open)
-        prefixAggregator.reduce(sum, lsub.pfs)
+        prefixAggregator.monoid.combine(sum, lsub.pfs)
       else
-        prefixAggregator.append(prefixAggregator.reduce(sum, lsub.pfs), data.value)
+        prefixAggregator.lff(prefixAggregator.monoid.combine(sum, lsub.pfs), data.value)
 
     final def pfs = prefix
   }
@@ -80,7 +82,7 @@ package infra {
   import org.isarnproject.collections.mixmaps.ordered.tree.DataMap
 
   /** Dependency injection for [[PrefixSumMap]].  Supplies implementations of all abstract methods */
-  class Inject[K, V, P](val keyOrdering: Ordering[K], val prefixAggregator: MonoidAggregator[V, P, P])
+  class Inject[K, V, P](val keyOrdering: Ordering[K], val prefixAggregator: Aggregator[P, V])
     extends Serializable {
     def iNode(clr: Color, dat: Data[K], ls: Node[K], rs: Node[K]) =
       new Inject[K, V, P](keyOrdering, prefixAggregator) with INodePS[K, V, P] with PrefixSumMap[K, V, P] {
@@ -90,7 +92,8 @@ package infra {
         val rsub = rs.asInstanceOf[NodePS[K, V, P]]
         val data = dat.asInstanceOf[DataMap[K, V]]
         // INodePS[K, V, P]
-        val prefix = prefixAggregator.append(prefixAggregator.reduce(lsub.pfs, rsub.pfs), data.value)
+        val prefix = prefixAggregator.lff(
+          prefixAggregator.monoid.combine(lsub.pfs, rsub.pfs), data.value)
       }
   }
 
@@ -120,14 +123,14 @@ trait PrefixSumMapLike[K, V, P, IN <: INodePS[K, V, P], M <: PrefixSumMapLike[K,
    * the sums will be for strictly < each key.
    */
   def prefixSumsIterator(open: Boolean = false): Iterator[P] = {
-    val itr = valuesIterator.scanLeft(prefixAggregator.monoid.zero)((p, e) => prefixAggregator.append(p, e))
+    val itr = valuesIterator.scanLeft(prefixAggregator.monoid.empty)(prefixAggregator.lff)
     if (open) itr.takeWhile(_ => itr.hasNext) else itr.drop(1)
   }
 
   /** equivalent to prefixSum of the right-most key */
   def sum: P = this match {
     case n: INodePS[K, V, P] => n.prefix
-    case _ => prefixAggregator.monoid.zero
+    case _ => prefixAggregator.monoid.empty
   }
 }
 
@@ -166,7 +169,7 @@ object PrefixSumMap {
 
     /** Mediating class between value method and prefix method */
     case class GetPrefix[K, V](ord: Ordering[K]) {
-      def prefix[P](implicit agg: MonoidAggregator[V, P, P]): PrefixSumMap[K, V, P] =
+      def prefix[P](implicit agg: Aggregator[P, V]): PrefixSumMap[K, V, P] =
         new Inject[K, V, P](ord, agg) with LNodePS[K, V, P] with PrefixSumMap[K, V, P]
     }
   }

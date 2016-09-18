@@ -23,6 +23,7 @@ import org.scalatest._
 import com.twitter.algebird.{ Monoid, Aggregator, MonoidAggregator }
 
 import org.isarnproject.scalatest.matchers.seq._
+import org.isarnproject.algebirdAlgebraAPI.implicits._
 
 object PrefixSumMapProperties extends FlatSpec with Matchers {
   import tree._
@@ -34,7 +35,7 @@ object PrefixSumMapProperties extends FlatSpec with Matchers {
     psmap: PrefixSumMapLike[K, V, P, IN, M] with SortedMap[K, V]) {
 
     val agg = psmap.prefixAggregator
-    val psTruth = data.map(_._2).scanLeft(agg.monoid.zero)((v, e) => agg.append(v, e))
+    val psTruth = data.map(_._2).scanLeft(agg.monoid.empty)((v, e) => agg.lff(v, e))
     psmap.prefixSums() should beEqSeq(psTruth.tail)
     psmap.prefixSums(open = true) should beEqSeq(psTruth.dropRight(1))
     psmap.prefixSums() should beEqSeq(psmap.keys.map(k => psmap.prefixSum(k)))
