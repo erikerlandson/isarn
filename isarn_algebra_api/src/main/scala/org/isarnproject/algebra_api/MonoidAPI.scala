@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package org.isarnproject.algebra_api
+package org.isarnproject.algebraAPI
 
 
 trait MonoidAPI[A] extends Any with SemigroupAPI[A] {
